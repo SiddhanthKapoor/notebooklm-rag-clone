@@ -3,52 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google NotebookLM Clone - RAG App</title>
+    <title>NotebookLM Clone — RAG Chatbot</title>
+    <meta name="description" content="Upload a PDF and chat with it using Google Gemini RAG pipeline.">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>NotebookLM Clone</h1>
-            <p>Upload a document and start chatting with it!</p>
-        </header>
 
-        <main>
-            <section class="upload-section card">
-                <h2>1. Upload Document</h2>
-                <form id="uploadForm">
-                    <div class="file-input-wrapper">
-                        <input type="file" id="document" accept=".pdf,.txt" required>
-                        <label for="document" class="file-label">Choose a PDF or TXT file</label>
-                    </div>
-                    <button type="submit" id="uploadBtn" class="btn primary-btn">Process Document</button>
-                </form>
-                <div id="uploadStatus" class="status-msg hidden"></div>
-            </section>
-
-            <section class="chat-section card disabled" id="chatSection">
-                <h2>2. Chat with Document</h2>
-                <div class="chat-container" id="chatContainer">
-                    <div class="message system-msg">
-                        <p>Upload a document to start a conversation!</p>
-                    </div>
-                </div>
-                
-                <form id="chatForm">
-                    <div class="input-group">
-                        <input type="text" id="question" placeholder="Ask a question about your document..." required autocomplete="off">
-                        <button type="submit" id="sendBtn" class="btn secondary-btn" disabled>Send</button>
-                    </div>
-                </form>
-            </section>
-        </main>
-        
-        <footer>
-            <p>Built with ❤️ for GenAI Assignment by Siddhanth Kapoor (10154)</p>
-        </footer>
+    <!-- Animated background -->
+    <div class="bg-layer">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="noise"></div>
     </div>
-    
+
+    <!-- Main App -->
+    <div class="app">
+
+        <!-- ── UPLOAD CARD ─────────────────────── -->
+        <div class="card" id="uploadCard">
+            <div class="card-inner">
+
+                <header class="app-header">
+                    <div class="logo-ring">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="app-title">NotebookLM <span>Clone</span></h1>
+                        <p class="app-sub">Upload a document and start chatting with it</p>
+                    </div>
+                </header>
+
+                <form id="uploadForm" autocomplete="off">
+                    <div class="dropzone" id="dropzone">
+                        <input type="file" id="fileInput" accept=".pdf,.txt" title=" ">
+
+                        <!-- Default state -->
+                        <div class="dz-default" id="dzDefault">
+                            <div class="dz-icon-wrap">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                                    <polyline points="16 16 12 12 8 16"/>
+                                    <line x1="12" y1="12" x2="12" y2="21"/>
+                                    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+                                </svg>
+                            </div>
+                            <p class="dz-title">Drag &amp; drop your PDF here</p>
+                            <p class="dz-hint">or <span class="dz-link">click to browse</span> &middot; PDF &amp; TXT supported</p>
+                        </div>
+
+                        <!-- Selected state -->
+                        <div class="dz-selected hidden" id="dzSelected">
+                            <div class="dz-file-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                            </div>
+                            <div class="dz-file-info">
+                                <p class="dz-file-name" id="dzFileName"></p>
+                                <p class="dz-file-size" id="dzFileSize"></p>
+                            </div>
+                            <button type="button" id="dzClear" class="dz-clear-btn" title="Remove">&#x2715;</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="uploadBtn" class="btn-chrome" disabled>
+                        <span id="uploadBtnLabel">Select a file to continue</span>
+                        <div class="btn-loader hidden" id="uploadLoader"></div>
+                    </button>
+
+                    <div id="uploadError" class="error-banner hidden"></div>
+                </form>
+
+            </div>
+        </div>
+
+        <!-- ── CHAT CARD ───────────────────────── -->
+        <div class="card hidden" id="chatCard">
+            <div class="card-inner chat-card-inner">
+
+                <header class="chat-header">
+                    <div class="chat-header-left">
+                        <div class="doc-pill">
+                            <span class="doc-dot"></span>
+                            <span id="chatDocName" class="doc-pill-name"></span>
+                        </div>
+                    </div>
+                    <button class="btn-ghost" id="newDocBtn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        New doc
+                    </button>
+                </header>
+
+                <div class="messages" id="chatMessages"></div>
+
+                <div class="chat-input-wrap">
+                    <form id="chatForm">
+                        <div class="input-shell">
+                            <textarea id="chatInput" placeholder="Ask anything about your document…" rows="1"></textarea>
+                            <button type="submit" id="sendBtn" class="send-btn" disabled>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="22" y1="2" x2="11" y2="13"/>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+                    <p class="input-hint"><kbd>Enter</kbd> to send &nbsp;&middot;&nbsp; <kbd>Shift+Enter</kbd> for new line</p>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

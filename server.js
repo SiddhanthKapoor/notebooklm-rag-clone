@@ -12,6 +12,13 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
+// Polyfill DOMMatrix for pdf-parse on Vercel Node environments
+if (typeof global.DOMMatrix === 'undefined') {
+    global.DOMMatrix = class DOMMatrix {};
+}
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -22,6 +29,7 @@ app.use(express.json());
 app.get('/', (req, res) => res.sendFile(path.join(process.cwd(), 'index.html')));
 app.get('/style.css', (req, res) => res.sendFile(path.join(process.cwd(), 'style.css')));
 app.get('/app.js', (req, res) => res.sendFile(path.join(process.cwd(), 'app.js')));
+app.get('/favicon.png', (req, res) => res.sendFile(path.join(process.cwd(), 'favicon.png')));
 
 // Configure Multer for file uploads using OS temp directory (works on Vercel)
 const uploadDir = os.tmpdir();
@@ -47,7 +55,10 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
         const filePath = req.file.path;
         const collectionName = `session_${sessionId.replace(/-/g, '')}`;
 
-        // 1. Ingestion: Load the PDF
+        // Ensure pdf-parse is bundled by Vercel
+        require('pdf-parse');
+
+        // 1. Ingestion: Load the PDF using Langchain's robust PDFLoader
         const loader = new PDFLoader(filePath);
         const rawDocs = await loader.load();
 
