@@ -78,7 +78,7 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
 
     } catch (error) {
         console.error('Error processing document:', error);
-        res.status(500).json({ error: 'Failed to process document. Make sure Qdrant and Gemini API are properly configured.' });
+        res.status(500).json({ error: `Server Error: ${error.message || error.toString()}` });
     }
 });
 
