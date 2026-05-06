@@ -3,12 +3,15 @@
 A full RAG (Retrieval-Augmented Generation) pipeline application where users can upload any PDF document and chat with it. 
 Built by **Siddhanth Kapoor** (Roll No: 10154).
 
+## 🚀 Live Demo
+**Live Project Link:** [https://notebooklm-rag-clone.vercel.app/](https://notebooklm-rag-clone.vercel.app/)
+
 ## Features Implemented
 - **Full RAG Pipeline**: End-to-end ingestion, chunking, embedding, storage, retrieval, and generation.
 - **Web UI**: Beautiful and simple UI built with HTML/CSS/JS.
 - **Document Processing**: Ability to ingest completely unseen PDF files.
 - **Vector Database**: Uses Qdrant Cloud for storing vector embeddings.
-- **LLM Context Anchoring**: Gpt-4o-mini restricted to only answer from the retrieved document context.
+- **LLM Context Anchoring**: Restricted to only answer from the retrieved document context. *(Note: I am using a simpler model, Gemini 1.5 Flash, due to billing constraints. Rest assured, if we use the best of models like GPT-4o, the working and accuracy will increase proportionally!)*
 
 ## Chunking Strategy Documented
 **Strategy Used**: `RecursiveCharacterTextSplitter` from LangChain.
@@ -34,7 +37,7 @@ Built by **Siddhanth Kapoor** (Roll No: 10154).
 3. **Environment Variables**
    Rename `.env.example` to `.env` and fill in your keys:
    ```env
-   OPENAI_API_KEY=your_openai_api_key
+   GEMINI_API_KEY=your_gemini_api_key
    QDRANT_URL=your_qdrant_url (e.g., https://your-cluster.aws.cloud.qdrant.io:6333)
    QDRANT_API_KEY=your_qdrant_api_key
    ```
@@ -49,5 +52,5 @@ Built by **Siddhanth Kapoor** (Roll No: 10154).
 To deploy this project:
 1. Push this code to GitHub.
 2. Link your repository to a service like Render (Web Service), Vercel, or Railway.
-3. Make sure to add `OPENAI_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` in the hosting environment variables settings.
+3. Make sure to add `GEMINI_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` in the hosting environment variables settings.
 4. The application will build and deploy seamlessly!

@@ -122,10 +122,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Helper functions
+    function parseMarkdown(text) {
+        // Replace **text** with <strong>text</strong>
+        let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Replace *text* with <em>text</em>
+        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        // Replace newlines with <br>
+        html = html.replace(/\n/g, '<br>');
+        return html;
+    }
+
     function addMessage(text, className) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${className}`;
-        msgDiv.textContent = text;
+        msgDiv.innerHTML = parseMarkdown(text);
         chatContainer.appendChild(msgDiv);
         scrollToBottom();
     }

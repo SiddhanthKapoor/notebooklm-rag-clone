@@ -2,15 +2,15 @@ import 'dotenv/config';
 import express from 'express';
 import multer from 'multer';
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { OpenAIEmbeddings } from '@langchain/openai';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
+import { GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { QdrantVectorStore } from '@langchain/qdrant';
-import { ChatOpenAI } from '@langchain/openai';
-import { createRetrievalChain } from 'langchain/chains/retrieval';
-import { createStuffDocumentsChain } from 'langchain/chains/combine_documents';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { RunnableSequence } from '@langchain/core/runnables';
+import { StringOutputParser } from '@langchain/core/output_parsers';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
@@ -18,21 +18,22 @@ const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
+// Serve static files (used for local development)
+app.get('/', (req, res) => res.sendFile(path.join(process.cwd(), 'index.html')));
+app.get('/style.css', (req, res) => res.sendFile(path.join(process.cwd(), 'style.css')));
+app.get('/app.js', (req, res) => res.sendFile(path.join(process.cwd(), 'app.js')));
 
-// Configure Multer for file uploads
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
-const upload = multer({ dest: 'uploads/' });
+// Configure Multer for file uploads using OS temp directory (works on Vercel)
+const uploadDir = os.tmpdir();
+const upload = multer({ dest: uploadDir });
 
 // Global vector store registry
 const vectorStores = {};
 
 // Initialize embeddings
-const embeddings = new OpenAIEmbeddings({
-    model: 'text-embedding-3-small', // cost effective
+const embeddings = new GoogleGenerativeAIEmbeddings({
+    apiKey: process.env.GEMINI_API_KEY,
+    model: 'gemini-embedding-2', // Latest stable Gemini embedding model
 });
 
 // API Endpoint to Upload and Process PDF
@@ -51,9 +52,6 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
         const rawDocs = await loader.load();
 
         // 2. Chunking: Split the document into chunks
-        // Documented Chunking Strategy: Recursive Character Text Splitter
-        // This splits text using a list of characters (like paragraphs, sentences, words).
-        // It tries to keep semantically related pieces of text together.
         const textSplitter = new RecursiveCharacterTextSplitter({
             chunkSize: 1000,
             chunkOverlap: 200,
@@ -80,7 +78,7 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
 
     } catch (error) {
         console.error('Error processing document:', error);
-        res.status(500).json({ error: 'Failed to process document. Make sure Qdrant and OpenAI are properly configured.' });
+        res.status(500).json({ error: 'Failed to process document. Make sure Qdrant and Gemini API are properly configured.' });
     }
 });
 
@@ -113,8 +111,9 @@ app.post('/api/chat', async (req, res) => {
         const retriever = vectorStore.asRetriever({ k: 4 });
 
         // 6. Generation: Use LLM with retrieved context
-        const llm = new ChatOpenAI({
-            modelName: 'gpt-4o-mini', // Cost effective but very capable
+        const llm = new ChatGoogleGenerativeAI({
+            apiKey: process.env.GEMINI_API_KEY,
+            model: 'gemini-flash-latest', // Fast and cost effective
             temperature: 0,
         });
 
@@ -126,24 +125,27 @@ Context:
 
         const prompt = ChatPromptTemplate.fromMessages([
             ['system', systemPrompt],
-            ['user', '{input}'],
+            ['user', '{question}'],
         ]);
 
-        const documentChain = await createStuffDocumentsChain({
-            llm,
+        const chain = RunnableSequence.from([
+            {
+                context: async (input) => {
+                    const docs = await retriever.invoke(input.question);
+                    return docs.map(d => d.pageContent).join("\\n\\n");
+                },
+                question: (input) => input.question,
+            },
             prompt,
+            llm,
+            new StringOutputParser()
+        ]);
+
+        const answer = await chain.invoke({
+            question: question,
         });
 
-        const retrievalChain = await createRetrievalChain({
-            combineDocsChain: documentChain,
-            retriever,
-        });
-
-        const response = await retrievalChain.invoke({
-            input: question,
-        });
-
-        res.json({ answer: response.answer });
+        res.json({ answer: answer });
 
     } catch (error) {
         console.error('Error generating answer:', error);
@@ -151,6 +153,10 @@ Context:
     }
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
+    });
+}
+
+export default app;
